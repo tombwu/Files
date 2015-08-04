@@ -194,54 +194,78 @@ namespace Quest.NSP.Migrator
 		{
 			if (DialogResult == DialogResult.OK && environmentSettings is ClientWebServicesClaimsBasedAuthenticationEnvironmentSettings)
 			{
-				bool expirationWindowValid = true;
-
-				uint expirationWindow = 0;
-				if (!uint.TryParse(txtCredentialsExpirationWindow.Text, out expirationWindow) || expirationWindow == 0 || expirationWindow > 1440)
+				uint? expirationWindow = RetrieveExpirationValue(txtCredentialsExpirationWindow.Text);
+				
+				if (expirationWindow == null)
 				{
-                    MessageBox.Show("The cookie refresh interval must be a value between 1 and 1440 minutes.", "Invalid number",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Warning);
-					e.Cancel = true;
-					expirationWindowValid = false;
+					ShowMessageBox("The cookie refresh interval must be a value between 1 and 1440 minutes.");
 				}
-
+				
 				if (chkOverrideCookieExpiration.Checked)
 				{
-					uint expirationOverride = 0;
-					if (!uint.TryParse(txtCookieExpirationOverride.Text, out expirationOverride) || expirationOverride == 0 || expirationOverride > 1440)
+					uint? expirationOverride = RetrieveExpirationValue(txtCookieExpirationOverride.Text);
+					
+					if (expirationOverride == null)
 					{
-                        MessageBox.Show("The cookie expiration interval must be a value between 1 and 1440 minutes.", "Invalid number",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Warning);
-						e.Cancel = true;
+						ShowMessageBox("The cookie expiration interval must be a value between 1 and 1440 minutes.");
 					}
-					else if (expirationWindowValid && expirationWindow >= expirationOverride)
+					else if (expirationWindow != null && expirationWindow.Value >= expirationOverride.Value)
 					{
-                        MessageBox.Show("The cookie expiration interval must be greater than the cookie refresh interval.", "Invalid number",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Warning);
-						e.Cancel = true;
+						ShowMessageBox("The cookie expiration interval must be greater than the cookie refresh interval.");
 					}
 				}
 
-                uint backoffInterval = 0;
-                if (!uint.TryParse(txtBackoffInterval.Text, out backoffInterval) || backoffInterval < 30)
-                {
-                    MessageBox.Show("Back off uses interval must be greater than 30 seconds", "Invalid number",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Warning);
-                    e.Cancel = true;
-                }
-                uint retryCount = 0;
-                if (!uint.TryParse(txtRetryCount.Text, out retryCount) || retryCount < 5)
-                {
-                    MessageBox.Show("Retries must be greater than 5 times", "Invalid number",
-                                MessageBoxButtons.OK,
-                                MessageBoxIcon.Warning);
-                    e.Cancel = true;
-                }
+				RetrieveAndValidateValue(
+					txtBackoffInterval.Text,
+					30,
+					"Back off uses interval must be greater than 30 seconds");
+				
+				RetrieveAndValidateValue(
+					txtRetryCount.Text,
+					5,
+					"Retries must be greater than 5 times");
 			}
+		}
+		
+		private uint? RetrieveExpirationValue(
+			String i_text
+			)
+		{
+			uint result;
+			if(!uint.TryParse(i_text, out result) || expirationWindow == 0 || expirationWindow > 1440)
+			{
+				return null;
+			}
+			else
+			{
+				return result;
+			}
+		}
+		
+		private void RetrieveAndValidateValue(
+			String i_text,
+			uint i_maxValue,
+			String i_message
+			)
+		{
+			uint value = 0;
+			if (!uint.TryParse(i_text, out value) || value < i_maxValue)
+			{
+				ShowMessageBox(i_message);
+            }
+		}
+		
+		private void ShowMessageBox(
+			String i_message
+			)
+		{
+			MessageBox.Show(
+				i_message, 
+				"Invalid number",
+				MessageBoxButtons.OK,
+				MessageBoxIcon.Warning);
+
+			e.Cancel = true;
 		}
 
 		private void SetLinkTrackingRedirectorUrl(bool enabled)
